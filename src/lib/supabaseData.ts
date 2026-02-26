@@ -75,11 +75,22 @@ export function useDB() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+      }),
+    ])
+  }
+
   const fetchAll = useCallback(async () => {
+    console.log('[useDB] Starting fetchAll...')
     setLoading(true)
     setError(null)
     try {
-      const [pRes, wRes, cRes, rRes, revRes] = await Promise.all([
+      console.log('[useDB] Querying profiles, worker_profiles, customer_profiles, service_requests, reviews...')
+      const queriesPromise = Promise.all([
         supabase.from('profiles').select('id,email,name,role,active'),
         supabase
           .from('worker_profiles')
@@ -88,9 +99,12 @@ export function useDB() {
         supabase.from('service_requests').select('*'),
         supabase.from('reviews').select('*'),
       ])
+      const [pRes, wRes, cRes, rRes, revRes] = await withTimeout(queriesPromise, 15000, 'DB queries')
+      console.log('[useDB] Queries complete')
 
       const firstError = pRes.error ?? wRes.error ?? cRes.error ?? rRes.error ?? revRes.error
       if (firstError) {
+        console.error('[useDB] Query error:', firstError)
         setError(firstError.message)
         return
       }
@@ -138,8 +152,10 @@ export function useDB() {
       )
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Failed to load data'
+      console.error('[useDB] Error:', message)
       setError(message)
     } finally {
+      console.log('[useDB] Setting loading=false')
       setLoading(false)
     }
   }, [])

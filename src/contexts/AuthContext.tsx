@@ -88,14 +88,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[Auth] onAuthStateChange triggered, session:', session ? 'exists' : 'none')
       try {
         if (!session) {
+          console.log('[Auth] onAuthStateChange: no session, clearing state')
           if (!cancelled) setState({ session: null, user: null, role: null, loading: false, needsRoleSelection: false })
           return
         }
 
+        console.log('[Auth] onAuthStateChange: calling ensureProfile...')
         await withTimeout(ensureProfile(session.user), 15000, 'ensureProfile')
+        console.log('[Auth] onAuthStateChange: ensureProfile done')
+        
+        console.log('[Auth] onAuthStateChange: calling fetchRole...')
         const role = await withTimeout(fetchRole(session.user.id), 15000, 'fetchRole')
+        console.log('[Auth] onAuthStateChange: fetchRole done:', role)
 
         const isGoogleUser = session.user.app_metadata.provider === 'google'
         const hasExplicitRole = !!session.user.user_metadata?.role
@@ -108,8 +115,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setState({ session, user: session.user, role, loading: false, needsRoleSelection: false })
           }
         }
+        console.log('[Auth] onAuthStateChange: complete, loading=false')
       } catch (e) {
-        console.error('Auth state change error:', e)
+        console.error('[Auth] onAuthStateChange error:', e)
         if (!cancelled) setState({ session: null, user: null, role: null, loading: false, needsRoleSelection: false })
       }
     })
