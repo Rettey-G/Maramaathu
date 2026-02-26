@@ -1,311 +1,307 @@
-# Maraamathu - Service Marketplace Platform
+# Maraamathu - Maldives Service Marketplace Platform
 
-A service marketplace demo application connecting customers with skilled workers for home services. Built with React, TypeScript, and Tailwind CSS.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-maramaathu.vercel.app-blue)](https://maramaathu.vercel.app)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## ▶️ Run locally
+A modern service marketplace platform connecting customers with skilled workers for home and business services. Built with React, TypeScript, Supabase, and Tailwind CSS.
 
-### Prerequisites
-- Node.js 18+ (recommended)
-- npm (comes with Node.js)
+🌐 **Live Site:** https://maramaathu.vercel.app  
+📱 **Mobile-friendly** | 🔐 **Secure Auth** | ⚡ **Real-time Updates**
 
-### Steps
-```bash
-# 1) Clone
-git clone <repository-url>
+---
 
-# 2) Go to project folder
-cd maraamathu
+## 📋 Table of Contents
 
-# 3) Install dependencies
-npm install
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [User Guide](#user-guide)
+- [Admin Setup](#admin-setup)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
 
-# 4) Start dev server
-npm run dev
-```
-
-Then open the URL printed in the terminal (typically `http://localhost:5173`).
-
-## 🔐 Supabase setup (required for real Auth + Admin user management)
-
-This project can run with Supabase.
-
-### Environment variables
-
-Create a `.env.local` with:
-
-```bash
-VITE_SUPABASE_URL=YOUR_SUPABASE_URL
-VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-```
-
-### Admin user management (Edge Function)
-
-The Admin panel can create users, delete users, and reset passwords via the Supabase Edge Function `admin-users`.
-
-1) Install Supabase CLI and login
-
-```bash
-npm i -g supabase
-supabase login
-```
-
-2) Link your project
-
-```bash
-supabase link --project-ref <your-project-ref>
-```
-
-3) Set function secret (Service Role key)
-
-```bash
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-```
-
-4) Deploy the function
-
-```bash
-supabase functions deploy admin-users
-```
-
-After deploying, log in as an Admin and use the Admin dashboard buttons:
-
-- **Create** customer/worker (email + temp password)
-- **Reset Password** per row
-- **Delete** per row
-- **Active/Inactive** toggle
-
-### Production build (optional)
-```bash
-# Build
-npm run build
-
-# Preview the production build locally
-npm run preview
-```
+---
 
 ## 🚀 Features
 
-### Customer Experience
-- **Service Request Creation**: Customers can create detailed service requests with budget, urgency, and location
-- **Worker Discovery**: Browse and search for workers by service category with ratings and reviews
-- **Full Workflow Management**: Track jobs through every stage from request to payment
-- **Real-time Updates**: Instant UI updates as workers accept and progress through jobs
+### For Customers
+- ✅ **Post Jobs** - Create service requests in 30 seconds
+- ✅ **Browse Workers** - View verified worker profiles with ratings
+- ✅ **Compare Quotes** - Receive and compare multiple quotations
+- ✅ **Track Progress** - Real-time updates on job status
+- ✅ **Secure Reviews** - Rate and review completed jobs
+- ✅ **Service Categories** - AC, Plumbing, Electrical, Carpentry, Painting, and more
 
-### Worker Experience
-- **Job Management**: View and accept service requests matching their skills
-- **Workflow Tools**: Schedule inspections, submit quotes, manage work schedules
-- **Payment Tracking**: Mark payments as pending or paid
-- **Profile Management**: Showcase skills, experience, ratings, and availability
+### For Workers
+- ✅ **Create Profile** - Showcase skills, experience, and portfolio
+- ✅ **Job Notifications** - Get alerted for matching jobs nearby
+- ✅ **Submit Quotes** - Competitive pricing for each job
+- ✅ **Manage Schedule** - Track inspections, work, and payments
+- ✅ **Build Reputation** - Earn ratings and reviews
+- ✅ **Dashboard Analytics** - View job history and earnings
 
-### Complete Job Lifecycle
-1. **Request** → Customer creates service request
-2. **Interest / Quotations** → Multiple workers can mark interest and submit quotations (while request is still open)
-3. **Select** → Customer selects a worker for inspection OR chooses a quotation offer
-4. **Inspection** → Worker proposes inspection time → Customer confirms → Both confirm completion
-5. **Quote** → Worker submits quote → Customer approves
-6. **Schedule** → Worker schedules work → Customer confirms
-7. **Work** → Worker completes job → Customer confirms completion
-8. **Payment** → Worker marks payment status
-9. **Complete** → Job marked as completed
+### For Admins
+- ✅ **User Management** - Create, update, delete users
+- ✅ **Password Reset** - Reset passwords for any user
+- ✅ **Account Control** - Activate/deactivate accounts
+- ✅ **Platform Monitoring** - View all jobs and users
+- ✅ **Secure Edge Functions** - Server-side admin operations
+
+### Technical Features
+- 🔐 **Google OAuth** - One-click sign-in
+- ⚡ **Real-time Sync** - Live data updates across all users
+- 📱 **PWA Ready** - Install as mobile app
+- 🎨 **Responsive Design** - Works on all devices
+- 🛡️ **RLS Security** - Row Level Security with Supabase
+- 🌍 **Maldives-focused** - Local service categories and currency (MVR)
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Tailwind CSS
-- **State Management**: React hooks and local state
-- **Database**: LocalStorage-based mock database with real-time updates
-- **Authentication**: Mock auth with role-based access (customer/worker/admin)
-- **Build Tool**: Vite
-- **Icons**: Lucide React
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 18, TypeScript, Tailwind CSS |
+| **Backend** | Supabase (Auth, Database, Realtime) |
+| **Edge Functions** | Deno/TypeScript (Admin operations) |
+| **Build** | Vite |
+| **Icons** | Lucide React |
+| **Deployment** | Vercel |
+| **Database** | PostgreSQL + Supabase |
 
-## 📦 Installation
+---
+
+## ⚡ Quick Start
+
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+
+### Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd maraamathu
+# 1. Clone repository
+git clone https://github.com/Rettey-G/Maramaathu.git
+cd Maramaathu
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Start development server
+# 3. Create environment file
+cp .env.example .env.local
+
+# 4. Add your Supabase credentials to .env.local
+# VITE_SUPABASE_URL=your_supabase_url
+# VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# 5. Start development server
 npm run dev
-
-# Build for production
-npm run build
 ```
 
-## 🏗️ Project Structure
+Open http://localhost:5173
+
+---
+
+## 📖 User Guide
+
+### Getting Started
+
+1. **Sign Up/Login**
+   - Visit https://maramaathu.vercel.app
+   - Click "Sign In"
+   - Use Google sign-in or email/password
+
+2. **Choose Your Role**
+   - **Customer** - Need services done
+   - **Worker** - Provide skilled services
+   - **Admin** - Manage the platform
+
+### Customer Workflow
 
 ```
-.
-├── index.html
-├── vite.config.ts
-├── tailwind.config.js
-├── postcss.config.js
-├── tsconfig.json
-├── tsconfig.node.json
-├── package.json
-├── package-lock.json
-├── .env.example
-├── SETUP.md
-└── src/
-    ├── components/
-    │   ├── Auth.tsx
-    │   ├── AdminDashboard.tsx
-    │   ├── CustomerDashboard.tsx
-    │   ├── WorkerDashboard.tsx
-    │   ├── ServiceRequestForm.tsx
-    │   └── WorkerProfileForm.tsx
-    └── lib/
-        ├── db.ts
-        ├── hooks.ts
-        └── types.ts
+Post Job → Workers Show Interest → Review Quotes → 
+Accept Quote → Inspection → Work → Payment → Review
 ```
 
-## 🔐 Authentication
+1. **Post a Service Request**
+   - Select category (Plumbing, AC, etc.)
+   - Describe the job
+   - Set budget (optional)
+   - Set urgency
 
-The app uses a mock authentication system with demo accounts:
+2. **Review Interested Workers**
+   - View worker profiles
+   - Check ratings and reviews
+   - Compare quotations
 
-### Customer Accounts
-- **Email**: `customer@demo.com` → Select any customer profile
-- **Role**: Customer
+3. **Approve and Track**
+   - Accept a worker/quote
+   - Schedule inspection
+   - Confirm work completion
+   - Leave a review
 
-### Worker Accounts  
-- **Email**: `worker@demo.com` → Select any worker profile
-- **Role**: Worker
+### Worker Workflow
 
-### Admin Account
-- **Email**: `admin@demo.com`
-- **Role**: Admin
+```
+Create Profile → Browse Jobs → Submit Quote → 
+Get Selected → Complete Work → Receive Payment
+```
 
-## ✅ Completed Jobs tabs
+1. **Complete Your Profile**
+   - Add skills and categories
+   - Upload work photos
+   - Set contact info
 
-- Customer Dashboard has a **Completed** tab.
-- Worker Dashboard has a **Completed** tab.
-- Completed jobs are separated from active jobs so the main lists stay clean.
+2. **Find Jobs**
+   - Browse available requests
+   - Filter by category
+   - Express interest
 
-## � Activate / Deactivate behavior
+3. **Submit Quotes**
+   - Competitive pricing
+   - Add notes
+   - Wait for customer selection
 
-- Admin can toggle **Active / Inactive** for customers and workers.
-- **Inactive users will not appear in the Sign in (demo) profile list**, and the app blocks key actions for deactivated users.
+4. **Manage Jobs**
+   - Schedule inspections
+   - Update progress
+   - Mark completion
 
-## �📊 Database Schema
+---
 
-### Core Entities
-- **Users**: Customer profiles with contact information
-- **Workers**: Service provider profiles with skills, rates, and ratings
-- **Service Requests**: Job requests with workflow status tracking
-- **Service Categories**: Available service types (AC, Plumbing, Electrical, Carpentry, Other)
+## 🔐 Admin Setup
 
-Note: currency in the UI is **MVR**.
+### Initial Admin User
 
-### Workflow States
-Each service request progresses through these states:
-- `open` → `pending_customer_confirmation` → `inspection_pending_worker_proposal` → `inspection_pending_customer_confirmation` → `inspection_scheduled` → `inspection_completed_pending_customer_confirm` → `awaiting_quote` → `quote_pending_approval` → `work_pending_worker_schedule` → `work_pending_customer_confirmation` → `work_scheduled` → `work_completed_pending_customer_confirm` → `payment_pending` → `completed`
+1. Sign up as a regular user
+2. In Supabase Dashboard, go to `profiles` table
+3. Find your user and change `role` to `admin`
 
-## 🎨 UI Components
+### Deploy Admin Edge Function
 
-### Customer Dashboard Tabs
-- **Find Workers**: Search and browse available workers
-- **New / Waiting**: View open requests
-- **Confirm Worker**: Accept worker proposals
-- **Inspection**: Manage inspection scheduling and confirmation
-- **Quote / Price**: Review and approve quotes
-- **Work Schedule**: Confirm work schedules
-- **Completion**: Confirm work completion
-- **Payment**: View payment status
-- **Completed**: View finished jobs
+```bash
+# 1. Install Supabase CLI via Scoop (Windows)
+scoop install supabase
 
-### Worker Dashboard Tabs
-- **Browse Requests**: View and accept new job requests
-- **Inspection**: Propose and complete inspections
-- **Quote**: Submit price quotes
-- **Schedule Work**: Plan and schedule work
-- **Work**: Manage ongoing jobs
-- **Completion**: Track completion confirmations
-- **Payment**: Mark payment status
-- **Completed**: View finished jobs
+# 2. Login
+supabase login
 
-## 🔄 Real-time Features
+# 3. Link project
+supabase link --project-ref your-project-ref
 
-- **Live Updates**: UI automatically refreshes when data changes
-- **Event Listeners**: Mock subscription system for real-time updates
-- **State Synchronization**: All components stay in sync with database changes
+# 4. Set Service Role Key secret
+supabase secrets set SERVICE_ROLE_KEY=your_service_role_key
 
-## 🧪 Testing
+# 5. Deploy function
+supabase functions deploy admin-users --no-verify-jwt
+```
 
-The application includes comprehensive mock data seeding and can be tested with:
-- Different user roles (customer/worker)
-- Complete workflow scenarios
-- Edge cases and error handling
+### Admin Capabilities
 
-## 📱 Responsive Design
+- **Create Users** - Add customers/workers with temporary passwords
+- **Reset Passwords** - Reset any user's password
+- **Delete Users** - Remove accounts permanently
+- **Activate/Deactivate** - Control account access
 
-- Mobile-first approach with Tailwind CSS
-- Responsive navigation and layouts
-- Touch-friendly interface elements
-- Optimized for all screen sizes
-
-## 🔧 Development
-
-### Available Scripts
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-
-### Code Style
-- TypeScript strict mode enabled
-- ESLint configuration for code quality
-- Consistent naming conventions
-- Component-based architecture
+---
 
 ## 🚀 Deployment
 
-The application is ready for deployment to any static hosting service:
-- Vercel
-- Netlify
-- GitHub Pages
-- AWS S3 + CloudFront
+### Vercel (Recommended)
 
-## 📈 Future Enhancements
+1. Push code to GitHub
+2. Import project in Vercel
+3. Set environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy
 
-- Real messaging system between customers and workers
-- Photo/file upload for job documentation
-- Payment gateway integration
-- Mobile app development
-- Advanced filtering and search
-- Notification system
-- Analytics dashboard
+### Supabase Configuration
+
+1. **Authentication** → Enable Email + Google OAuth
+2. **URL Configuration** → Add your Vercel domain
+3. **Edge Functions** → Deploy `admin-users` function
+4. **Database** → Run schema from `supabase-schema.sql`
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase public anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | (Server-side only) Admin operations |
+
+---
+
+## 📊 Database Schema
+
+### Tables
+
+- **profiles** - User accounts (customer/worker/admin)
+- **worker_profiles** - Extended worker details
+- **customer_profiles** - Extended customer details
+- **service_requests** - Job postings
+- **reviews** - Ratings and feedback
+
+### Security
+
+All tables have Row Level Security (RLS) enabled:
+- Users can only access their own data
+- Workers see relevant jobs
+- Admins have full read access
+- Edge Functions bypass RLS with Service Role
+
+---
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create feature branch: `git checkout -b feature/my-feature`
+3. Commit changes: `git commit -m 'Add new feature'`
+4. Push to branch: `git push origin feature/my-feature`
+5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 📞 Support
-
-For support and questions, please open an issue in the repository.
+### Code Style
+- TypeScript strict mode
+- ESLint + Prettier
+- Component-based architecture
+- Hooks for state management
 
 ---
 
-Built with ❤️ for the Maraamathu service marketplace platform.
+## � Documentation
 
+- [Video Script](./docs/VIDEO_SCRIPT.md) - Marketing video script
+- [Changelog](./CHANGELOG.md) - Version history
+- [User Handbook](./HANDBOOK.md) - Detailed user guide
+- [Setup Guide](./SETUP.md) - Developer setup instructions
 
-vhbTzJgQu3O6wwe7 superbasePW
+---
 
+## �️ Roadmap
 
-project url 
-https://yzxphvnuovtppqkgguyk.supabase.co
-Publishable key
-sb_publishable_V2YfGs2NwWMYADTSPqymRA_ms2ChGxq
-Drect connection string
-postgresql://postgres:[YOUR-PASSWORD]@db.yzxphvnuovtppqkgguyk.supabase.co:5432/postgres
-Password 
-vhbTzJgQu3O6wwe7
+- [ ] Push notifications
+- [ ] In-app messaging
+- [ ] Payment gateway integration
+- [ ] Mobile app (React Native)
+- [ ] Advanced analytics
+- [ ] Multi-language support
+- [ ] Photo upload for jobs
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) file
+
+---
+
+## 📞 Contact & Support
+
+- **Issues:** [GitHub Issues](https://github.com/Rettey-G/Maramaathu/issues)
+
+---
+
+Built with ❤️ for the Maldives service community.
+
+**Maraamathu - Get it done.**
