@@ -268,12 +268,18 @@ Deno.serve(async (req) => {
     }
 
     if (payload.action === 'delete_user') {
+      console.log('Deleting user:', payload.userId)
       const { error: deleteError } = await adminClient.auth.admin.deleteUser(payload.userId)
-      if (deleteError) return jsonResponse(req, 400, { error: deleteError.message })
+      if (deleteError) {
+        console.error('Delete auth error:', JSON.stringify(deleteError))
+        return jsonResponse(req, 400, { error: deleteError.message || JSON.stringify(deleteError) })
+      }
 
-      await adminClient.from('profiles').delete().eq('id', payload.userId)
-      await adminClient.from('worker_profiles').delete().eq('id', payload.userId)
-      await adminClient.from('customer_profiles').delete().eq('id', payload.userId)
+      const { error: profileError } = await adminClient.from('profiles').delete().eq('id', payload.userId)
+      const { error: workerError } = await adminClient.from('worker_profiles').delete().eq('id', payload.userId)
+      const { error: customerError } = await adminClient.from('customer_profiles').delete().eq('id', payload.userId)
+      
+      console.log('Delete results:', { profileError, workerError, customerError })
 
       return jsonResponse(req, 200, { ok: true })
     }

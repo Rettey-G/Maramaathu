@@ -372,7 +372,11 @@ function CustomerRow({ c }: { c: CustomerProfile }) {
         </button>
         <button
           className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200 hover:bg-red-500/20"
-          onClick={() => deleteCustomer({ customerId: c.id })}
+          onClick={() => {
+            if (window.confirm(`Delete customer "${c.name}"? This cannot be undone.`)) {
+              void deleteCustomer({ customerId: c.id })
+            }
+          }}
         >
           Delete
         </button>
@@ -547,7 +551,11 @@ function WorkerRow({ w, onShowProfile }: { w: WorkerProfile; onShowProfile: (id:
         </button>
         <button
           className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200 hover:bg-red-500/20"
-          onClick={() => deleteWorker({ workerId: w.id })}
+          onClick={() => {
+            if (window.confirm(`Delete worker "${w.name}"? This cannot be undone.`)) {
+              void deleteWorker({ workerId: w.id })
+            }
+          }}
         >
           Delete
         </button>
