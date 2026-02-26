@@ -286,14 +286,46 @@ Deno.serve(async (req) => {
       if (deleteError) {
         console.error('DEBUG: Delete auth error:', JSON.stringify(deleteError, null, 2))
         console.error('DEBUG: Delete error keys:', Object.keys(deleteError))
-        const errorMsg = (deleteError as { message?: string }).message || JSON.stringify(deleteError) || 'Auth delete failed - unknown error'
+
+        const errorMsg =
+          (deleteError as { message?: string }).message ||
+          JSON.stringify(deleteError) ||
+          'Auth delete failed - unknown error'
+
+        // Most common reason: DB constraints because this user has related rows (jobs/reviews/etc).
+        // In that case, fallback to soft-delete (deactivate/ban) so the account cannot sign in.
+        if (typeof errorMsg === 'string' && errorMsg.toLowerCase().includes('database error deleting user')) {
+          const { error: banError } = await adminClient.auth.admin.updateUserById(payload.userId, {
+            // ~100 years. Prevent sign-in without losing historical data.
+            ban_duration: '876000h',
+          })
+
+          const { error: deactivateError } = await adminClient
+            .from('profiles')
+            .update({ active: false })
+            .eq('id', payload.userId)
+
+          if (banError || deactivateError) {
+            return jsonResponse(req, 500, {
+              error: 'Failed to deactivate user after hard delete failed',
+              details: {
+                banError: banError?.message ?? null,
+                deactivateError: deactivateError?.message ?? null,
+              },
+            })
+          }
+
+          return jsonResponse(req, 200, { ok: true, deactivated: true })
+        }
+
         return jsonResponse(req, 400, { error: errorMsg })
       }
 
+      // Best-effort cleanup (may already be cascaded by DB)
       const { error: profileError } = await adminClient.from('profiles').delete().eq('id', payload.userId)
       const { error: workerError } = await adminClient.from('worker_profiles').delete().eq('id', payload.userId)
       const { error: customerError } = await adminClient.from('customer_profiles').delete().eq('id', payload.userId)
-      
+
       console.log('DEBUG: Delete results:', { profileError, workerError, customerError })
 
       return jsonResponse(req, 200, { ok: true })

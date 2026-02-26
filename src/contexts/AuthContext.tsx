@@ -29,13 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     needsRoleSelection: false,
   })
 
-  function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_resolve, reject) => {
-        setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-      }),
-    ])
+  function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<T>((_resolve, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    })
+
+    return Promise.race([Promise.resolve(promise), timeoutPromise]).finally(() => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
+    })
   }
 
   useEffect(() => {
@@ -58,8 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         console.log('[Auth] Calling ensureProfile...')
-        await withTimeout(ensureProfile(session.user), 15000, 'ensureProfile')
-        console.log('[Auth] ensureProfile done')
+        void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
+        console.log('[Auth] ensureProfile started (non-blocking)')
         
         console.log('[Auth] Calling fetchRole...')
         const role = await withTimeout(fetchRole(session.user.id), 15000, 'fetchRole')
@@ -97,8 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         console.log('[Auth] onAuthStateChange: calling ensureProfile...')
-        await withTimeout(ensureProfile(session.user), 15000, 'ensureProfile')
-        console.log('[Auth] onAuthStateChange: ensureProfile done')
+        void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
+        console.log('[Auth] onAuthStateChange: ensureProfile started (non-blocking)')
         
         console.log('[Auth] onAuthStateChange: calling fetchRole...')
         const role = await withTimeout(fetchRole(session.user.id), 15000, 'fetchRole')
@@ -118,7 +120,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[Auth] onAuthStateChange: complete, loading=false')
       } catch (e) {
         console.error('[Auth] onAuthStateChange error:', e)
-        if (!cancelled) setState({ session: null, user: null, role: null, loading: false, needsRoleSelection: false })
+        if (!cancelled) {
+          const currentSession = session ?? null
+          setState({ session: currentSession, user: currentSession?.user ?? null, role: null, loading: false, needsRoleSelection: false })
+        }
       }
     })
 
@@ -129,11 +134,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   async function fetchRole(userId: string): Promise<Role | null> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
+    const { data, error } = await withTimeout(
+      supabase.from('profiles').select('role').eq('id', userId).single(),
+      10000,
+      'fetchRole query',
+    )
     if (error) {
       console.error('fetchRole error:', error)
       return null
@@ -148,11 +153,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const nameRaw = meta.name ?? meta.full_name ?? meta.display_name
     const name = typeof nameRaw === 'string' && nameRaw.trim() ? nameRaw.trim() : user.email ?? 'User'
 
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
+    console.log('[Auth] ensureProfile: reading existing profile...')
+    const { data: existingProfile, error: existingProfileError } = await withTimeout(
+      supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+      10000,
+      'ensureProfile read profile',
+    )
+    if (existingProfileError) console.error('[Auth] ensureProfile: read profile error:', existingProfileError)
 
     // Preserve role set in DB (e.g. changed from Supabase dashboard)
     const existingRole = (existingProfile?.role ?? null) as Role | null
@@ -162,32 +169,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const defaultRole: Role = user.app_metadata.provider === 'google' && !metaRole ? 'customer' : role
     const finalRole: Role = existingRole ?? defaultRole
 
-    await supabase
-      .from('profiles')
-      .upsert(
-        {
-          id: user.id,
-          email: user.email ?? null,
-          name,
-          role: finalRole,
-          active: true,
-        },
-        { onConflict: 'id' },
-      )
-
-    if (finalRole === 'worker') {
-      const { error: workerProfileError } = await supabase
-        .from('worker_profiles')
+    console.log('[Auth] ensureProfile: upserting profiles...')
+    const { error: profileUpsertError } = await withTimeout(
+      supabase
+        .from('profiles')
         .upsert(
           {
             id: user.id,
-            categories: [],
-            skills: [],
+            email: user.email ?? null,
+            name,
+            role: finalRole,
+            active: true,
           },
           { onConflict: 'id' },
-        )
+        ),
+      10000,
+      'ensureProfile upsert profile',
+    )
+    if (profileUpsertError) console.error('[Auth] ensureProfile: upsert profile error:', profileUpsertError)
+
+    if (finalRole === 'worker') {
+      console.log('[Auth] ensureProfile: upserting worker_profiles...')
+      const { error: workerProfileError } = await withTimeout(
+        supabase
+          .from('worker_profiles')
+          .upsert(
+            {
+              id: user.id,
+              categories: [],
+              skills: [],
+            },
+            { onConflict: 'id' },
+          ),
+        10000,
+        'ensureProfile upsert worker_profiles',
+      )
       if (workerProfileError) console.error('Worker profile upsert error:', workerProfileError)
     }
+
+    console.log('[Auth] ensureProfile: done')
   }
 
   async function signUp(email: string, password: string, role: Role, name: string) {
