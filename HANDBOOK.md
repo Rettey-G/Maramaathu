@@ -34,6 +34,20 @@ Maraamathu is a service marketplace platform that connects:
    - Google account (quick)
    - Email and password
 
+### Install Maraamathu as an App (PWA)
+
+You can install Maraamathu on your phone so it opens like an app.
+
+- **Android (Chrome)**
+  1. Open https://maramaathu.vercel.app
+  2. Tap the menu (3 dots)
+  3. Tap **"Install app"** or **"Add to Home screen"**
+
+- **iPhone (Safari)**
+  1. Open https://maramaathu.vercel.app in **Safari**
+  2. Tap **Share**
+  3. Tap **"Add to Home Screen"**
+
 ### Choosing Your Role
 
 When you first sign up, you'll be asked to choose:

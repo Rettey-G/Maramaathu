@@ -123,6 +123,16 @@ const enTranslations: Record<string, string> = {
   'landing.footer.rights': 'All rights reserved',
   'landing.footer.madeIn': 'Made in Maldives',
   
+  // Works Gallery
+  'landing.works.title': 'Popular Services',
+  'landing.works.subtitle': 'Browse through our most requested home services',
+  'landing.work.carpentry': 'Carpentry',
+  'landing.work.plumbing': 'Plumbing',
+  'landing.work.painting': 'Painting',
+  'landing.work.mechanic': 'Auto Repair',
+  'landing.work.cleaning': 'House Cleaning',
+  'landing.work.electrical': 'Electrical',
+  
   // Role Selection Page
   'roleSelect.title': 'Choose Your Role',
   'roleSelect.subtitle': 'Tell us how you want to use Maraamathu to get started',
@@ -409,6 +419,16 @@ const dvTranslations: Record<string, string> = {
   'landing.ctaSection.button': 'މުދާ އެކައުންޓް ކްރިއޭޓްކުރޭ',
   'landing.footer.rights': 'ހުރިހާ ޙައްޤުތައް ރައްދު ކުރެވިފައި',
   'landing.footer.madeIn': 'ދިވެހިރާއްޖޭގައި ތައްޔަރު',
+  
+  // Works Gallery
+  'landing.works.title': 'މަގުފާރު ސާވިސްތައް',
+  'landing.works.subtitle': 'އެންމެ ބޭނުން ކުރާ ގެދޮރު ސާވިސްތައް ބައްލަވާ',
+  'landing.work.carpentry': 'ކާޕަންޓަރީ',
+  'landing.work.plumbing': 'ޕްލަމްބިންގް',
+  'landing.work.painting': 'ޕޭންޓިންގް',
+  'landing.work.mechanic': 'ގަލިގަސް ރިޕެއަރ',
+  'landing.work.cleaning': 'ގެދޮރު ކުޅިއްޔާލުން',
+  'landing.work.electrical': 'އިލެކްޓްރިކަލް',
   
   // Role Selection Page
   'roleSelect.title': 'ތަރުތީބު ކުރޭ',

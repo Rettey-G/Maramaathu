@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useLanguage } from '../contexts/LanguageContext'
-import { ArrowRight, Users, Briefcase, Shield, Star, CheckCircle } from 'lucide-react'
+import { ArrowRight, Users, Briefcase, Shield, Star, CheckCircle, Hammer, Wrench, Paintbrush, Car, Home, Zap } from 'lucide-react'
 
 export default function LandingPage() {
   const { t, language } = useLanguage()
@@ -10,6 +10,15 @@ export default function LandingPage() {
     { icon: Briefcase, title: t('landing.feature2.title'), desc: t('landing.feature2.desc') },
     { icon: Shield, title: t('landing.feature3.title'), desc: t('landing.feature3.desc') },
     { icon: Star, title: t('landing.feature4.title'), desc: t('landing.feature4.desc') },
+  ]
+
+  const sampleWorks = [
+    { icon: Hammer, title: t('landing.work.carpentry'), gradient: 'from-amber-600 to-orange-600' },
+    { icon: Wrench, title: t('landing.work.plumbing'), gradient: 'from-blue-600 to-cyan-600' },
+    { icon: Paintbrush, title: t('landing.work.painting'), gradient: 'from-pink-600 to-rose-600' },
+    { icon: Car, title: t('landing.work.mechanic'), gradient: 'from-red-600 to-orange-600' },
+    { icon: Home, title: t('landing.work.cleaning'), gradient: 'from-emerald-600 to-teal-600' },
+    { icon: Zap, title: t('landing.work.electrical'), gradient: 'from-yellow-500 to-amber-500' },
   ]
 
   return (
@@ -142,6 +151,38 @@ export default function LandingPage() {
                 </div>
                 <h3 className="mb-3 text-xl font-semibold text-white">{item.title}</h3>
                 <p className="text-white/60">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Works Gallery */}
+      <section className="border-t border-white/10 bg-white/5 px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">{t('landing.works.title')}</h2>
+            <p className="mx-auto max-w-2xl text-white/60">{t('landing.works.subtitle')}</p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {sampleWorks.map((work, idx) => (
+              <div
+                key={idx}
+                className="group overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm transition-all hover:border-white/20 hover:bg-white/10"
+              >
+                <div className={`relative h-48 overflow-hidden bg-gradient-to-br ${work.gradient}`}>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <work.icon className="h-16 w-16 text-white/40" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
+                  <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                      <work.icon className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-lg font-semibold text-white">{work.title}</span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

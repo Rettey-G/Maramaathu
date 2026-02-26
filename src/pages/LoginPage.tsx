@@ -157,7 +157,7 @@ export default function LoginPage() {
                   },
                 }}
                 providers={['google']}
-                redirectTo="/"
+                redirectTo="https://maramaathu.vercel.app/"
                 additionalData={{ name: signupName, role: signupRole }}
               />
 
@@ -253,7 +253,7 @@ export default function LoginPage() {
                 },
               }}
               providers={['google']}
-              redirectTo="/"
+              redirectTo="https://maramaathu.vercel.app/"
             />
 
             <div className="mt-6 text-center">

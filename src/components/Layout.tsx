@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import LanguageToggle from './LanguageToggle'
+import PwaInstallButton from './PwaInstallButton'
 import type { ReactNode } from 'react'
 
 export default function Layout({ children }: { children?: ReactNode }) {
@@ -19,6 +20,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             <LanguageToggle />
+            <PwaInstallButton />
             {role === 'admin' || role === 'worker' ? (
               <Link
                 className="rounded-xl border border-white/10 bg-white/20 px-3 py-2 text-sm text-white hover:bg-white/30"

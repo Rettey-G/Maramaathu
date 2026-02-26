@@ -55,6 +55,25 @@ A modern service marketplace platform connecting customers with skilled workers 
 - 🛡️ **RLS Security** - Row Level Security with Supabase
 - 🌍 **Maldives-focused** - Local service categories and currency (MVR)
 
+### PWA (Install as App)
+
+The website can be installed like a normal app.
+
+- **Android (Chrome)**
+  - Open https://maramaathu.vercel.app
+  - Tap the browser menu
+  - Tap **"Install app"** or **"Add to Home screen"**
+
+- **iPhone (Safari)**
+  - Open https://maramaathu.vercel.app in **Safari** (not inside Facebook/Instagram browser)
+  - Tap **Share**
+  - Tap **"Add to Home Screen"**
+
+If the install option does not show:
+- Make sure you are on **HTTPS**
+- Hard refresh and try again
+- Avoid opening inside an in-app browser
+
 ---
 
 ## 🛠️ Tech Stack

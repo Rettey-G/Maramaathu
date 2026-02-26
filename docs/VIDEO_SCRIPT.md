@@ -131,7 +131,7 @@
 **Text on screen:**
 - "maramaathu.vercel.app"
 - QR Code
-- "Available on all devices"
+- "Install as an app (PWA)"
 - "Free to use"
 
 **Final tagline:**
