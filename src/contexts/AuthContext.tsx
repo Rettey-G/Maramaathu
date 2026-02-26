@@ -42,20 +42,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false
 
     const init = async () => {
+      console.log('[Auth] Starting init...')
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession()
+        console.log('[Auth] Session:', session ? 'exists' : 'none')
 
         if (cancelled) return
 
         if (!session) {
+          console.log('[Auth] No session, clearing loading')
           setState({ session: null, user: null, role: null, loading: false, needsRoleSelection: false })
           return
         }
 
+        console.log('[Auth] Calling ensureProfile...')
         await withTimeout(ensureProfile(session.user), 15000, 'ensureProfile')
+        console.log('[Auth] ensureProfile done')
+        
+        console.log('[Auth] Calling fetchRole...')
         const role = await withTimeout(fetchRole(session.user.id), 15000, 'fetchRole')
+        console.log('[Auth] fetchRole done:', role)
 
         const isGoogleUser = session.user.app_metadata.provider === 'google'
         const hasExplicitRole = !!session.user.user_metadata?.role
@@ -66,9 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setState({ session, user: session.user, role, loading: false, needsRoleSelection: false })
         }
+        console.log('[Auth] Init complete, loading=false')
       } catch (e) {
         if (cancelled) return
-        console.error('Auth init error:', e)
+        console.error('[Auth] Init error:', e)
         setState({ session: null, user: null, role: null, loading: false, needsRoleSelection: false })
       }
     }
