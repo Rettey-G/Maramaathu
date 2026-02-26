@@ -47,11 +47,13 @@ type AdminUsersRequest =
     }
 
 function buildCors(req: Request) {
-  const origin = req.headers.get('Origin') ?? '*'
+  const origin = req.headers.get('Origin')
+  const allowedOrigins = ['https://maramaathu.vercel.app', 'http://localhost:5173', 'http://localhost:4173']
+  const allowed = allowedOrigins.includes(origin) || !origin
   const requestHeaders = req.headers.get('Access-Control-Request-Headers')
   return {
     ...corsHeaders,
-    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Origin': allowed ? (origin ?? '*') : 'null',
     'Access-Control-Allow-Headers': requestHeaders ?? corsHeaders['Access-Control-Allow-Headers'],
   }
 }
@@ -74,7 +76,7 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
-  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const supabaseServiceRoleKey = Deno.env.get('SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
     return jsonResponse(req, 500, { error: 'Missing server environment variables' })

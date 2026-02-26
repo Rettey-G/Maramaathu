@@ -93,7 +93,34 @@
 
 ---
 
-## Scene 6: Call to Action (85-90 seconds)
+## Scene 5.5: Admin Powers (85-95 seconds)
+
+**Visual:** Admin dashboard showing user list, create user form, reset password button
+
+**Audio:**
+> "Platform admins have full control."
+> "Create users instantly."
+> "Reset passwords with one click."
+> "Delete accounts. Activate or deactivate users."
+> "Complete user management at your fingertips."
+
+**Demo actions:**
+1. Admin views all customers and workers
+2. Creates new user with email and temporary password
+3. Clicks "Reset Password" on existing user
+4. Toggles Active/Inactive status
+5. Deletes user account
+
+**Text on screen:**
+- "👤 Create users"
+- "🔑 Reset passwords"
+- "🗑️ Delete accounts"
+- "⚡ Activate/Deactivate"
+- "🎛️ Full admin power"
+
+---
+
+## Scene 6: Call to Action (95-100 seconds)
 
 **Visual:** App download QR code, website URL
 
