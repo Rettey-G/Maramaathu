@@ -3,34 +3,44 @@
 
 import { supabase } from './supabase'
 
-function edgeErrorToMessage(error: unknown) {
-  if (!error || typeof error !== 'object') return 'Unknown error'
+async function invokeAdminUsers<TResponse = unknown>(body: unknown): Promise<TResponse> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-  const e = error as {
-    message?: string
-    context?: {
-      status?: number
-      statusText?: string
-      body?: unknown
-    }
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables')
   }
 
-  const status = e.context?.status
-  const statusText = e.context?.statusText
-  const body = e.context?.body
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw new Error(error.message)
 
-  const parts: string[] = []
-  if (typeof e.message === 'string' && e.message) parts.push(e.message)
-  if (typeof status === 'number') parts.push(`status=${status}${statusText ? ` (${statusText})` : ''}`)
-  if (body) {
-    try {
-      parts.push(`body=${typeof body === 'string' ? body : JSON.stringify(body)}`)
-    } catch {
-      parts.push('body=[unserializable]')
-    }
+  const accessToken = data.session?.access_token
+  if (!accessToken) {
+    throw new Error('Not authenticated')
   }
 
-  return parts.join(' | ')
+  const res = await fetch(`${supabaseUrl}/functions/v1/admin-users`, {
+    method: 'POST',
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  const text = await res.text()
+  if (!res.ok) {
+    throw new Error(`Edge Function returned a non-2xx status code | status=${res.status} | body=${text || '{}'}`)
+  }
+
+  if (!text) return {} as TResponse
+
+  try {
+    return JSON.parse(text) as TResponse
+  } catch {
+    return { raw: text } as TResponse
+  }
 }
 
 export async function createRequest(_params: {
@@ -117,68 +127,53 @@ export async function submitQuoteOffer(_params: { requestId: string; workerId: s
 
 // Admin CRUD stubs
 export async function createCustomer(_params: { name: string; email: string; password: string; phone?: string }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'create_user',
-      email: _params.email,
-      password: _params.password,
-      role: 'customer',
-      name: _params.name,
-      active: true,
-      phone: _params.phone,
-    },
+  await invokeAdminUsers({
+    action: 'create_user',
+    email: _params.email,
+    password: _params.password,
+    role: 'customer',
+    name: _params.name,
+    active: true,
+    phone: _params.phone,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function updateCustomer(_params: { customerId: string; patch: { name?: string; email?: string; phone?: string } }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'update_user',
-      userId: _params.customerId,
-      name: _params.patch.name,
-      email: _params.patch.email,
-      phone: _params.patch.phone,
-      role: 'customer',
-    },
+  await invokeAdminUsers({
+    action: 'update_user',
+    userId: _params.customerId,
+    name: _params.patch.name,
+    email: _params.patch.email,
+    phone: _params.patch.phone,
+    role: 'customer',
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function setCustomerActive(_params: { customerId: string; active: boolean }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'update_user',
-      userId: _params.customerId,
-      active: _params.active,
-    },
+  await invokeAdminUsers({
+    action: 'update_user',
+    userId: _params.customerId,
+    active: _params.active,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function deleteCustomer(_params: { customerId: string }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'delete_user',
-      userId: _params.customerId,
-    },
+  await invokeAdminUsers({
+    action: 'delete_user',
+    userId: _params.customerId,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function createWorker(_params: { name: string; email: string; password: string; phone?: string }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'create_user',
-      email: _params.email,
-      password: _params.password,
-      role: 'worker',
-      name: _params.name,
-      active: true,
-      phone: _params.phone,
-    },
+  await invokeAdminUsers({
+    action: 'create_user',
+    email: _params.email,
+    password: _params.password,
+    role: 'worker',
+    name: _params.name,
+    active: true,
+    phone: _params.phone,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function updateWorker(_params: {
@@ -195,55 +190,43 @@ export async function updateWorker(_params: {
     promoPosterUrl?: string
   }
 }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'update_user',
-      userId: _params.workerId,
-      name: _params.patch.name,
-      email: _params.patch.email,
-      phone: _params.patch.phone,
-      role: 'worker',
-      whatsapp: _params.patch.whatsapp,
-      viber: _params.patch.viber,
-      categories: _params.patch.categories,
-      skills: _params.patch.skills,
-      about: _params.patch.about,
-      promoPosterUrl: _params.patch.promoPosterUrl,
-    },
+  await invokeAdminUsers({
+    action: 'update_user',
+    userId: _params.workerId,
+    name: _params.patch.name,
+    email: _params.patch.email,
+    phone: _params.patch.phone,
+    role: 'worker',
+    whatsapp: _params.patch.whatsapp,
+    viber: _params.patch.viber,
+    categories: _params.patch.categories,
+    skills: _params.patch.skills,
+    about: _params.patch.about,
+    promoPosterUrl: _params.patch.promoPosterUrl,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function setWorkerActive(_params: { workerId: string; active: boolean }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'update_user',
-      userId: _params.workerId,
-      active: _params.active,
-    },
+  await invokeAdminUsers({
+    action: 'update_user',
+    userId: _params.workerId,
+    active: _params.active,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function deleteWorker(_params: { workerId: string }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'delete_user',
-      userId: _params.workerId,
-    },
+  await invokeAdminUsers({
+    action: 'delete_user',
+    userId: _params.workerId,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function adminResetPassword(_params: { userId: string; password: string }) {
-  const { error } = await supabase.functions.invoke('admin-users', {
-    body: {
-      action: 'reset_password',
-      userId: _params.userId,
-      password: _params.password,
-    },
+  await invokeAdminUsers({
+    action: 'reset_password',
+    userId: _params.userId,
+    password: _params.password,
   })
-  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function updateWorkerProfile(_params: {

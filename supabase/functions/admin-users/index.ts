@@ -66,6 +66,9 @@ function jsonResponse(req: Request, status: number, body: unknown) {
 }
 
 Deno.serve(async (req) => {
+  console.log('DEBUG: Function called with method:', req.method)
+  console.log('DEBUG: Headers:', Object.fromEntries(req.headers.entries()))
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: buildCors(req) })
   }
@@ -77,6 +80,12 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
   const supabaseServiceRoleKey = Deno.env.get('SERVICE_ROLE_KEY')
+
+  console.log('DEBUG: Environment variables:', {
+    hasSupabaseUrl: !!supabaseUrl,
+    hasSupabaseAnonKey: !!supabaseAnonKey,
+    hasServiceRoleKey: !!supabaseServiceRoleKey,
+  })
 
   if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
     return jsonResponse(req, 500, { error: 'Missing server environment variables' })
@@ -268,18 +277,24 @@ Deno.serve(async (req) => {
     }
 
     if (payload.action === 'delete_user') {
-      console.log('Deleting user:', payload.userId)
+      console.log('DEBUG: Delete action received for userId:', payload.userId)
+      if (!payload.userId) {
+        console.error('DEBUG: Missing userId in payload')
+        return jsonResponse(req, 400, { error: 'Missing userId in request payload' })
+      }
       const { error: deleteError } = await adminClient.auth.admin.deleteUser(payload.userId)
       if (deleteError) {
-        console.error('Delete auth error:', JSON.stringify(deleteError))
-        return jsonResponse(req, 400, { error: deleteError.message || JSON.stringify(deleteError) })
+        console.error('DEBUG: Delete auth error:', JSON.stringify(deleteError, null, 2))
+        console.error('DEBUG: Delete error keys:', Object.keys(deleteError))
+        const errorMsg = (deleteError as { message?: string }).message || JSON.stringify(deleteError) || 'Auth delete failed - unknown error'
+        return jsonResponse(req, 400, { error: errorMsg })
       }
 
       const { error: profileError } = await adminClient.from('profiles').delete().eq('id', payload.userId)
       const { error: workerError } = await adminClient.from('worker_profiles').delete().eq('id', payload.userId)
       const { error: customerError } = await adminClient.from('customer_profiles').delete().eq('id', payload.userId)
       
-      console.log('Delete results:', { profileError, workerError, customerError })
+      console.log('DEBUG: Delete results:', { profileError, workerError, customerError })
 
       return jsonResponse(req, 200, { ok: true })
     }
