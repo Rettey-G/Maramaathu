@@ -13,6 +13,7 @@ export default function LoginPage() {
   const { t, language } = useLanguage()
   const [searchParams] = useSearchParams()
   const isSignup = searchParams.get('signup') === 'true'
+  const redirectTo = `${window.location.origin}/`
   
   const [mode, setMode] = useState<'login' | 'signup'>(isSignup ? 'signup' : 'login')
   const [signupRole, setSignupRole] = useState<Role>('customer')
@@ -157,7 +158,7 @@ export default function LoginPage() {
                   },
                 }}
                 providers={['google']}
-                redirectTo="https://maramaathu.vercel.app/"
+                redirectTo={redirectTo}
                 additionalData={{ name: signupName, role: signupRole }}
               />
 
@@ -253,7 +254,7 @@ export default function LoginPage() {
                 },
               }}
               providers={['google']}
-              redirectTo="https://maramaathu.vercel.app/"
+              redirectTo={redirectTo}
             />
 
             <div className="mt-6 text-center">
