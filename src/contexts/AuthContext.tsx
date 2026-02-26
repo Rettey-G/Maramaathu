@@ -79,8 +79,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         void fetchRole(session.user.id)
           .then((dbRole) => {
             if (cancelled) return
-            if (dbRole && dbRole !== roleFromMeta) {
+            // Only sync DB to metadata if DB is empty; trust user_metadata as source of truth
+            const metaRole = session.user.user_metadata?.role
+            if (!metaRole && dbRole) {
               setState({ session, user: session.user, role: dbRole, loading: false, needsRoleSelection: false })
+            }
+            // If metadata has role but DB differs, log for debugging but don't override
+            if (metaRole && dbRole && metaRole !== dbRole) {
+              console.warn('[Auth] Role mismatch: metadata=' + metaRole + ', db=' + dbRole + '. Trusting metadata.')
             }
           })
           .catch((e) => console.error('[Auth] fetchRole error:', e))
@@ -136,8 +142,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         void fetchRole(session.user.id)
           .then((dbRole) => {
             if (cancelled) return
-            if (dbRole && dbRole !== roleFromMeta) {
+            // Only sync DB to metadata if DB is empty; trust user_metadata as source of truth
+            const metaRole = session.user.user_metadata?.role
+            if (!metaRole && dbRole) {
               setState({ session, user: session.user, role: dbRole, loading: false, needsRoleSelection: false })
+            }
+            if (metaRole && dbRole && metaRole !== dbRole) {
+              console.warn('[Auth] Role mismatch: metadata=' + metaRole + ', db=' + dbRole + '. Trusting metadata.')
             }
           })
           .catch((e) => console.error('[Auth] fetchRole error:', e))
@@ -189,15 +200,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const meta = (user.user_metadata ?? {}) as Record<string, unknown>
       const metaRole = meta.role
-      const role: Role = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin' ? metaRole : 'customer'
       const nameRaw = meta.name ?? meta.full_name ?? meta.display_name
       const name = typeof nameRaw === 'string' && nameRaw.trim() ? nameRaw.trim() : user.email ?? 'User'
 
-      // For Google OAuth, set 'customer' as default to satisfy NOT NULL constraint
-      // User will be prompted to change this if needed
-      const finalRole: Role = user.app_metadata.provider === 'google' && !metaRole ? 'customer' : role
+      // First, fetch existing profile to check current role
+      console.log('[Auth] ensureProfile: checking existing profile...')
+      const { data: existingProfile, error: fetchError } = await withTimeout(
+        supabase.from('profiles').select('role').eq('id', user.id).single(),
+        10000,
+        'ensureProfile fetch existing',
+      )
 
-      console.log('[Auth] ensureProfile: upserting profiles...')
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // PGRST116 = not found, other errors are real issues
+        console.error('[Auth] ensureProfile: fetch error:', fetchError)
+      }
+
+      // Determine role: preserve DB role if exists, otherwise use metadata
+      const dbRole = existingProfile?.role as Role | null
+      let role: Role
+
+      if (dbRole === 'admin' || dbRole === 'worker' || dbRole === 'customer') {
+        // Preserve existing DB role - don't overwrite!
+        role = dbRole
+        console.log('[Auth] ensureProfile: preserving existing DB role:', role)
+      } else {
+        // No existing role - use metadata or default
+        role = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin'
+          ? metaRole
+          : 'customer'
+        console.log('[Auth] ensureProfile: using metadata/default role:', role)
+      }
+
+      // Sync metadata if it differs from what we're about to set
+      if (metaRole !== role) {
+        console.log('[Auth] ensureProfile: syncing metadata to match role:', role)
+        await supabase.auth.updateUser({ data: { role } })
+      }
+
+      console.log('[Auth] ensureProfile: upserting profile with role:', role)
       const { error: profileUpsertError } = await withTimeout(
         supabase
           .from('profiles')
@@ -206,7 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               id: user.id,
               email: user.email ?? null,
               name,
-              role: finalRole,
+              role,
               active: true,
             },
             { onConflict: 'id' },
@@ -216,7 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       )
       if (profileUpsertError) console.error('[Auth] ensureProfile: upsert profile error:', profileUpsertError)
 
-      if (finalRole === 'worker') {
+      if (role === 'worker') {
         console.log('[Auth] ensureProfile: upserting worker_profiles...')
         const { error: workerProfileError } = await withTimeout(
           supabase
