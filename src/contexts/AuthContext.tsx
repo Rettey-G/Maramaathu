@@ -61,51 +61,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        console.log('[Auth] Calling ensureProfile...')
-        void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
-        console.log('[Auth] ensureProfile started (non-blocking)')
+        // Fetch DB role first (source of truth)
+        console.log('[Auth] Fetching DB role first...')
+        const dbRole = await fetchRole(session.user.id)
+        console.log('[Auth] DB role:', dbRole)
+
+        if (cancelled) return
 
         const metaRole = session.user.user_metadata?.role
         const roleFromMeta: Role | null = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin' ? metaRole : null
 
-        // Set a role immediately from metadata to avoid blocking on slow DB queries.
-        // We'll still attempt to fetch the DB role in the background (dashboard role changes).
-        let role: Role | null = roleFromMeta
-        if (roleFromMeta) {
-          setState({ session, user: session.user, role: roleFromMeta, loading: false, needsRoleSelection: false })
+        // Use DB role as source of truth, fallback to metadata
+        const effectiveRole: Role | null = dbRole || roleFromMeta
+
+        console.log('[Auth] effectiveRole:', effectiveRole, '(DB:', dbRole, ', meta:', roleFromMeta + ')')
+
+        // Sync metadata if it differs from DB
+        if (dbRole && metaRole !== dbRole) {
+          console.log('[Auth] Syncing metadata to match DB role:', dbRole)
+          await supabase.auth.updateUser({ data: { role: dbRole } })
         }
 
-        console.log('[Auth] Calling fetchRole (background)...')
-        void fetchRole(session.user.id)
-          .then((dbRole) => {
-            if (cancelled) return
-            // Only sync DB to metadata if DB is empty; trust user_metadata as source of truth
-            const metaRole = session.user.user_metadata?.role
-            if (!metaRole && dbRole) {
-              setState({ session, user: session.user, role: dbRole, loading: false, needsRoleSelection: false })
-            }
-            // If metadata has role but DB differs, log for debugging but don't override
-            if (metaRole && dbRole && metaRole !== dbRole) {
-              console.warn('[Auth] Role mismatch: metadata=' + metaRole + ', db=' + dbRole + '. Trusting metadata.')
-            }
-          })
-          .catch((e) => console.error('[Auth] fetchRole error:', e))
+        // Start ensureProfile in background
+        void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
 
-        const isGoogleUser = session.user.app_metadata.provider === 'google'
-        const hasExplicitRole = !!session.user.user_metadata?.role
-        const wasDefaulted = isGoogleUser && !hasExplicitRole && role === 'customer'
-
-        if (wasDefaulted) {
-          setState({ session, user: session.user, role: null, loading: false, needsRoleSelection: true })
+        if (effectiveRole) {
+          setState({ session, user: session.user, role: effectiveRole, loading: false, needsRoleSelection: false })
         } else {
-          setState({ session, user: session.user, role, loading: false, needsRoleSelection: false })
+          setState({ session, user: session.user, role: null, loading: false, needsRoleSelection: true })
         }
-        console.log('[Auth] Init complete, loading=false')
+
+        console.log('[Auth] Init complete, role set to:', effectiveRole)
       } catch (e) {
         if (cancelled) return
         console.error('[Auth] Init error:', e)
 
-        // Do not hard-clear session on transient timeouts/network issues.
         const {
           data: { session },
         } = await supabase.auth.getSession()
@@ -127,46 +117,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        console.log('[Auth] onAuthStateChange: calling ensureProfile...')
-        void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
-        console.log('[Auth] onAuthStateChange: ensureProfile started (non-blocking)')
+        // Fetch DB role first
+        console.log('[Auth] onAuthStateChange: fetching DB role first...')
+        const dbRole = await fetchRole(session.user.id)
+        console.log('[Auth] onAuthStateChange: DB role:', dbRole)
+
+        if (cancelled) return
 
         const metaRole = session.user.user_metadata?.role
         const roleFromMeta: Role | null = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin' ? metaRole : null
+        const effectiveRole: Role | null = dbRole || roleFromMeta
 
-        if (!cancelled) {
-          setState({ session, user: session.user, role: roleFromMeta, loading: false, needsRoleSelection: false })
+        // Sync metadata if differs from DB
+        if (dbRole && metaRole !== dbRole) {
+          console.log('[Auth] onAuthStateChange: syncing metadata to DB role:', dbRole)
+          await supabase.auth.updateUser({ data: { role: dbRole } })
         }
 
-        console.log('[Auth] onAuthStateChange: calling fetchRole (background)...')
-        void fetchRole(session.user.id)
-          .then((dbRole) => {
-            if (cancelled) return
-            // Only sync DB to metadata if DB is empty; trust user_metadata as source of truth
-            const metaRole = session.user.user_metadata?.role
-            if (!metaRole && dbRole) {
-              setState({ session, user: session.user, role: dbRole, loading: false, needsRoleSelection: false })
-            }
-            if (metaRole && dbRole && metaRole !== dbRole) {
-              console.warn('[Auth] Role mismatch: metadata=' + metaRole + ', db=' + dbRole + '. Trusting metadata.')
-            }
-          })
-          .catch((e) => console.error('[Auth] fetchRole error:', e))
-
-        const role: Role | null = roleFromMeta
-
-        const isGoogleUser = session.user.app_metadata.provider === 'google'
-        const hasExplicitRole = !!session.user.user_metadata?.role
-        const wasDefaulted = isGoogleUser && !hasExplicitRole && role === 'customer'
+        // Start ensureProfile in background
+        void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
 
         if (!cancelled) {
-          if (wasDefaulted) {
-            setState({ session, user: session.user, role: null, loading: false, needsRoleSelection: true })
+          if (effectiveRole) {
+            setState({ session, user: session.user, role: effectiveRole, loading: false, needsRoleSelection: false })
           } else {
-            setState({ session, user: session.user, role, loading: false, needsRoleSelection: false })
+            setState({ session, user: session.user, role: null, loading: false, needsRoleSelection: true })
           }
         }
-        console.log('[Auth] onAuthStateChange: complete, loading=false')
+
+        console.log('[Auth] onAuthStateChange: complete, role:', effectiveRole)
       } catch (e) {
         console.error('[Auth] onAuthStateChange error:', e)
         if (!cancelled) {
