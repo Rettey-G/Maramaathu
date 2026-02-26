@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Role } from '../lib/types'
@@ -28,6 +28,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading: true,
     needsRoleSelection: false,
   })
+
+  const ensureProfileInFlightRef = useRef<string | null>(null)
 
   function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined
@@ -64,7 +66,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[Auth] ensureProfile started (non-blocking)')
         
         console.log('[Auth] Calling fetchRole...')
-        const role = await withTimeout(fetchRole(session.user.id), 15000, 'fetchRole')
+        let role: Role | null = null
+        try {
+          role = await withTimeout(fetchRole(session.user.id), 30000, 'fetchRole')
+        } catch (e) {
+          console.error('[Auth] fetchRole error:', e)
+        }
         console.log('[Auth] fetchRole done:', role)
 
         const isGoogleUser = session.user.app_metadata.provider === 'google'
@@ -80,7 +87,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         if (cancelled) return
         console.error('[Auth] Init error:', e)
-        setState({ session: null, user: null, role: null, loading: false, needsRoleSelection: false })
+
+        // Do not hard-clear session on transient timeouts/network issues.
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        setState({ session: session ?? null, user: session?.user ?? null, role: null, loading: false, needsRoleSelection: false })
       }
     }
 
@@ -103,7 +115,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[Auth] onAuthStateChange: ensureProfile started (non-blocking)')
         
         console.log('[Auth] onAuthStateChange: calling fetchRole...')
-        const role = await withTimeout(fetchRole(session.user.id), 15000, 'fetchRole')
+        let role: Role | null = null
+        try {
+          role = await withTimeout(fetchRole(session.user.id), 30000, 'fetchRole')
+        } catch (e) {
+          console.error('[Auth] fetchRole error:', e)
+        }
         console.log('[Auth] onAuthStateChange: fetchRole done:', role)
 
         const isGoogleUser = session.user.app_metadata.provider === 'google'
@@ -147,67 +164,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function ensureProfile(user: User) {
-    const meta = (user.user_metadata ?? {}) as Record<string, unknown>
-    const metaRole = meta.role
-    const role: Role = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin' ? metaRole : 'customer'
-    const nameRaw = meta.name ?? meta.full_name ?? meta.display_name
-    const name = typeof nameRaw === 'string' && nameRaw.trim() ? nameRaw.trim() : user.email ?? 'User'
+    if (ensureProfileInFlightRef.current === user.id) {
+      console.log('[Auth] ensureProfile: already running, skipping')
+      return
+    }
+    ensureProfileInFlightRef.current = user.id
+    try {
+      const meta = (user.user_metadata ?? {}) as Record<string, unknown>
+      const metaRole = meta.role
+      const role: Role = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin' ? metaRole : 'customer'
+      const nameRaw = meta.name ?? meta.full_name ?? meta.display_name
+      const name = typeof nameRaw === 'string' && nameRaw.trim() ? nameRaw.trim() : user.email ?? 'User'
 
-    console.log('[Auth] ensureProfile: reading existing profile...')
-    const { data: existingProfile, error: existingProfileError } = await withTimeout(
-      supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
-      10000,
-      'ensureProfile read profile',
-    )
-    if (existingProfileError) console.error('[Auth] ensureProfile: read profile error:', existingProfileError)
+      console.log('[Auth] ensureProfile: reading existing profile...')
+      const { data: existingProfile, error: existingProfileError } = await withTimeout(
+        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+        30000,
+        'ensureProfile read profile',
+      )
+      if (existingProfileError) console.error('[Auth] ensureProfile: read profile error:', existingProfileError)
 
-    // Preserve role set in DB (e.g. changed from Supabase dashboard)
-    const existingRole = (existingProfile?.role ?? null) as Role | null
+      // Preserve role set in DB (e.g. changed from Supabase dashboard)
+      const existingRole = (existingProfile?.role ?? null) as Role | null
 
-    // For Google OAuth, set 'customer' as default to satisfy NOT NULL constraint
-    // User will be prompted to change this if needed
-    const defaultRole: Role = user.app_metadata.provider === 'google' && !metaRole ? 'customer' : role
-    const finalRole: Role = existingRole ?? defaultRole
+      // For Google OAuth, set 'customer' as default to satisfy NOT NULL constraint
+      // User will be prompted to change this if needed
+      const defaultRole: Role = user.app_metadata.provider === 'google' && !metaRole ? 'customer' : role
+      const finalRole: Role = existingRole ?? defaultRole
 
-    console.log('[Auth] ensureProfile: upserting profiles...')
-    const { error: profileUpsertError } = await withTimeout(
-      supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: user.id,
-            email: user.email ?? null,
-            name,
-            role: finalRole,
-            active: true,
-          },
-          { onConflict: 'id' },
-        ),
-      10000,
-      'ensureProfile upsert profile',
-    )
-    if (profileUpsertError) console.error('[Auth] ensureProfile: upsert profile error:', profileUpsertError)
-
-    if (finalRole === 'worker') {
-      console.log('[Auth] ensureProfile: upserting worker_profiles...')
-      const { error: workerProfileError } = await withTimeout(
+      console.log('[Auth] ensureProfile: upserting profiles...')
+      const { error: profileUpsertError } = await withTimeout(
         supabase
-          .from('worker_profiles')
+          .from('profiles')
           .upsert(
             {
               id: user.id,
-              categories: [],
-              skills: [],
+              email: user.email ?? null,
+              name,
+              role: finalRole,
+              active: true,
             },
             { onConflict: 'id' },
           ),
-        10000,
-        'ensureProfile upsert worker_profiles',
+        30000,
+        'ensureProfile upsert profile',
       )
-      if (workerProfileError) console.error('Worker profile upsert error:', workerProfileError)
-    }
+      if (profileUpsertError) console.error('[Auth] ensureProfile: upsert profile error:', profileUpsertError)
 
-    console.log('[Auth] ensureProfile: done')
+      if (finalRole === 'worker') {
+        console.log('[Auth] ensureProfile: upserting worker_profiles...')
+        const { error: workerProfileError } = await withTimeout(
+          supabase
+            .from('worker_profiles')
+            .upsert(
+              {
+                id: user.id,
+                categories: [],
+                skills: [],
+              },
+              { onConflict: 'id' },
+            ),
+          30000,
+          'ensureProfile upsert worker_profiles',
+        )
+        if (workerProfileError) console.error('Worker profile upsert error:', workerProfileError)
+      }
+
+      console.log('[Auth] ensureProfile: done')
+    } finally {
+      ensureProfileInFlightRef.current = null
+    }
   }
 
   async function signUp(email: string, password: string, role: Role, name: string) {
