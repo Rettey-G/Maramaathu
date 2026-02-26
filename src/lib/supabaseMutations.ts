@@ -3,6 +3,36 @@
 
 import { supabase } from './supabase'
 
+function edgeErrorToMessage(error: unknown) {
+  if (!error || typeof error !== 'object') return 'Unknown error'
+
+  const e = error as {
+    message?: string
+    context?: {
+      status?: number
+      statusText?: string
+      body?: unknown
+    }
+  }
+
+  const status = e.context?.status
+  const statusText = e.context?.statusText
+  const body = e.context?.body
+
+  const parts: string[] = []
+  if (typeof e.message === 'string' && e.message) parts.push(e.message)
+  if (typeof status === 'number') parts.push(`status=${status}${statusText ? ` (${statusText})` : ''}`)
+  if (body) {
+    try {
+      parts.push(`body=${typeof body === 'string' ? body : JSON.stringify(body)}`)
+    } catch {
+      parts.push('body=[unserializable]')
+    }
+  }
+
+  return parts.join(' | ')
+}
+
 export async function createRequest(_params: {
   customerId: string
   category: string
@@ -98,7 +128,7 @@ export async function createCustomer(_params: { name: string; email: string; pas
       phone: _params.phone,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function updateCustomer(_params: { customerId: string; patch: { name?: string; email?: string; phone?: string } }) {
@@ -112,7 +142,7 @@ export async function updateCustomer(_params: { customerId: string; patch: { nam
       role: 'customer',
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function setCustomerActive(_params: { customerId: string; active: boolean }) {
@@ -123,7 +153,7 @@ export async function setCustomerActive(_params: { customerId: string; active: b
       active: _params.active,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function deleteCustomer(_params: { customerId: string }) {
@@ -133,7 +163,7 @@ export async function deleteCustomer(_params: { customerId: string }) {
       userId: _params.customerId,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function createWorker(_params: { name: string; email: string; password: string; phone?: string }) {
@@ -148,7 +178,7 @@ export async function createWorker(_params: { name: string; email: string; passw
       phone: _params.phone,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function updateWorker(_params: {
@@ -181,7 +211,7 @@ export async function updateWorker(_params: {
       promoPosterUrl: _params.patch.promoPosterUrl,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function setWorkerActive(_params: { workerId: string; active: boolean }) {
@@ -192,7 +222,7 @@ export async function setWorkerActive(_params: { workerId: string; active: boole
       active: _params.active,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function deleteWorker(_params: { workerId: string }) {
@@ -202,7 +232,7 @@ export async function deleteWorker(_params: { workerId: string }) {
       userId: _params.workerId,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function adminResetPassword(_params: { userId: string; password: string }) {
@@ -213,7 +243,7 @@ export async function adminResetPassword(_params: { userId: string; password: st
       password: _params.password,
     },
   })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(edgeErrorToMessage(error))
 }
 
 export async function updateWorkerProfile(_params: {

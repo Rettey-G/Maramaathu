@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
           { onConflict: 'id' },
         )
         if (customerProfileError) {
-          return jsonResponse(500, { error: customerProfileError.message })
+          return jsonResponse(req, 500, { error: customerProfileError.message })
         }
       }
 
