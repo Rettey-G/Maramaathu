@@ -36,7 +36,7 @@ function AuthenticatedRoutes() {
   }
 
   if (!role) {
-    return <Navigate to="/login" replace />
+    return <LoadingSpinner />
   }
 
   const defaultPath = role === 'admin' ? '/admin' : role === 'worker' ? '/worker' : '/customer'
