@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import type {
   DB,
@@ -75,6 +75,9 @@ export function useDB() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchInFlightRef = useRef(false)
+  const scheduledRefetchRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
     return Promise.race([
       promise,
@@ -86,6 +89,12 @@ export function useDB() {
 
   const fetchAll = useCallback(async () => {
     console.log('[useDB] Starting fetchAll...')
+    if (fetchInFlightRef.current) {
+      console.log('[useDB] fetchAll skipped (already in flight)')
+      return
+    }
+    fetchInFlightRef.current = true
+
     setLoading(true)
     setError(null)
     try {
@@ -157,8 +166,17 @@ export function useDB() {
     } finally {
       console.log('[useDB] Setting loading=false')
       setLoading(false)
+      fetchInFlightRef.current = false
     }
   }, [])
+
+  const scheduleRefetch = useCallback(() => {
+    if (scheduledRefetchRef.current) return
+    scheduledRefetchRef.current = setTimeout(() => {
+      scheduledRefetchRef.current = null
+      void fetchAll()
+    }, 500)
+  }, [fetchAll])
 
   useEffect(() => {
     let cancelled = false
@@ -170,27 +188,31 @@ export function useDB() {
     const channel = supabase
       .channel('db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        if (!cancelled) void fetchAll()
+        if (!cancelled) scheduleRefetch()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'worker_profiles' }, () => {
-        if (!cancelled) void fetchAll()
+        if (!cancelled) scheduleRefetch()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_profiles' }, () => {
-        if (!cancelled) void fetchAll()
+        if (!cancelled) scheduleRefetch()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'service_requests' }, () => {
-        if (!cancelled) void fetchAll()
+        if (!cancelled) scheduleRefetch()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, () => {
-        if (!cancelled) void fetchAll()
+        if (!cancelled) scheduleRefetch()
       })
       .subscribe()
 
     return () => {
       cancelled = true
+      if (scheduledRefetchRef.current) {
+        clearTimeout(scheduledRefetchRef.current)
+        scheduledRefetchRef.current = null
+      }
       void supabase.removeChannel(channel)
     }
-  }, [fetchAll])
+  }, [fetchAll, scheduleRefetch])
 
   const db: DB = useMemo(() => {
     const workerExtraById = new Map(workersExtra.map((w) => [w.id, w]))

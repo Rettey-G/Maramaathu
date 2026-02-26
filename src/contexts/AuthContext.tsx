@@ -64,15 +64,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[Auth] Calling ensureProfile...')
         void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
         console.log('[Auth] ensureProfile started (non-blocking)')
-        
-        console.log('[Auth] Calling fetchRole...')
-        let role: Role | null = null
-        try {
-          role = await withTimeout(fetchRole(session.user.id), 30000, 'fetchRole')
-        } catch (e) {
-          console.error('[Auth] fetchRole error:', e)
+
+        const metaRole = session.user.user_metadata?.role
+        const roleFromMeta: Role | null = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin' ? metaRole : null
+
+        // Set a role immediately from metadata to avoid blocking on slow DB queries.
+        // We'll still attempt to fetch the DB role in the background (dashboard role changes).
+        let role: Role | null = roleFromMeta
+        if (roleFromMeta) {
+          setState({ session, user: session.user, role: roleFromMeta, loading: false, needsRoleSelection: false })
         }
-        console.log('[Auth] fetchRole done:', role)
+
+        console.log('[Auth] Calling fetchRole (background)...')
+        void fetchRole(session.user.id)
+          .then((dbRole) => {
+            if (cancelled) return
+            if (dbRole && dbRole !== roleFromMeta) {
+              setState({ session, user: session.user, role: dbRole, loading: false, needsRoleSelection: false })
+            }
+          })
+          .catch((e) => console.error('[Auth] fetchRole error:', e))
 
         const isGoogleUser = session.user.app_metadata.provider === 'google'
         const hasExplicitRole = !!session.user.user_metadata?.role
@@ -113,15 +124,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[Auth] onAuthStateChange: calling ensureProfile...')
         void ensureProfile(session.user).catch((e) => console.error('[Auth] ensureProfile error:', e))
         console.log('[Auth] onAuthStateChange: ensureProfile started (non-blocking)')
-        
-        console.log('[Auth] onAuthStateChange: calling fetchRole...')
-        let role: Role | null = null
-        try {
-          role = await withTimeout(fetchRole(session.user.id), 30000, 'fetchRole')
-        } catch (e) {
-          console.error('[Auth] fetchRole error:', e)
+
+        const metaRole = session.user.user_metadata?.role
+        const roleFromMeta: Role | null = metaRole === 'customer' || metaRole === 'worker' || metaRole === 'admin' ? metaRole : null
+
+        if (!cancelled) {
+          setState({ session, user: session.user, role: roleFromMeta, loading: false, needsRoleSelection: false })
         }
-        console.log('[Auth] onAuthStateChange: fetchRole done:', role)
+
+        console.log('[Auth] onAuthStateChange: calling fetchRole (background)...')
+        void fetchRole(session.user.id)
+          .then((dbRole) => {
+            if (cancelled) return
+            if (dbRole && dbRole !== roleFromMeta) {
+              setState({ session, user: session.user, role: dbRole, loading: false, needsRoleSelection: false })
+            }
+          })
+          .catch((e) => console.error('[Auth] fetchRole error:', e))
+
+        const role: Role | null = roleFromMeta
 
         const isGoogleUser = session.user.app_metadata.provider === 'google'
         const hasExplicitRole = !!session.user.user_metadata?.role
@@ -151,11 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   async function fetchRole(userId: string): Promise<Role | null> {
-    const { data, error } = await withTimeout(
-      supabase.from('profiles').select('role').eq('id', userId).single(),
-      10000,
-      'fetchRole query',
-    )
+    const { data, error } = await supabase.from('profiles').select('role').eq('id', userId).single()
     if (error) {
       console.error('fetchRole error:', error)
       return null
@@ -176,21 +193,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const nameRaw = meta.name ?? meta.full_name ?? meta.display_name
       const name = typeof nameRaw === 'string' && nameRaw.trim() ? nameRaw.trim() : user.email ?? 'User'
 
-      console.log('[Auth] ensureProfile: reading existing profile...')
-      const { data: existingProfile, error: existingProfileError } = await withTimeout(
-        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
-        30000,
-        'ensureProfile read profile',
-      )
-      if (existingProfileError) console.error('[Auth] ensureProfile: read profile error:', existingProfileError)
-
-      // Preserve role set in DB (e.g. changed from Supabase dashboard)
-      const existingRole = (existingProfile?.role ?? null) as Role | null
-
       // For Google OAuth, set 'customer' as default to satisfy NOT NULL constraint
       // User will be prompted to change this if needed
-      const defaultRole: Role = user.app_metadata.provider === 'google' && !metaRole ? 'customer' : role
-      const finalRole: Role = existingRole ?? defaultRole
+      const finalRole: Role = user.app_metadata.provider === 'google' && !metaRole ? 'customer' : role
 
       console.log('[Auth] ensureProfile: upserting profiles...')
       const { error: profileUpsertError } = await withTimeout(
