@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { LanguageProvider } from './contexts/LanguageContext'
 import LoginPage from './pages/LoginPage'
 import RoleSelectionPage from './pages/RoleSelectionPage'
 import CustomerLayout from './pages/customer/CustomerLayout'
@@ -54,13 +55,15 @@ function AuthenticatedRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/*" element={<AuthenticatedRoutes />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/*" element={<AuthenticatedRoutes />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </LanguageProvider>
   )
 }

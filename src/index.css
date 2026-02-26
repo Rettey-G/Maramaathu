@@ -3,6 +3,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dhivehi Font */
+@font-face {
+  font-family: 'Dhivehi';
+  src: url('/fonts/Dhivehi.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
 }
@@ -18,3 +27,50 @@ body {
     Arial, "Apple Color Emoji", "Segoe UI Emoji";
   background: #2d3748;
 }
+
+/* Dhivehi Language Styles */
+.dhivehi-font {
+  font-family: 'Dhivehi', 'MV Faseyha', 'Faruma', sans-serif !important;
+  direction: rtl;
+  text-align: right;
+}
+
+.dhivehi-font * {
+  font-family: 'Dhivehi', 'MV Faseyha', 'Faruma', sans-serif !important;
+}
+
+/* For better Dhivehi text rendering */
+.dhivehi-text {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
+/* RTL support for Dhivehi */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Language-specific adjustments */
+.dhivehi-font h1,
+.dhivehi-font h2,
+.dhivehi-font h3,
+.dhivehi-font h4,
+.dhivehi-font h5,
+.dhivehi-font h6 {
+  letter-spacing: 0;
+}
+
+.dhivehi-font input,
+.dhivehi-font textarea {
+  text-align: right;
+}
+
+.dhivehi-font .ltr-content {
+  direction: ltr;
+  text-align: left;
+}
+
